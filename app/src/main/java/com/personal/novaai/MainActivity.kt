@@ -155,16 +155,18 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun executeStepDirect(step: PlanStep) {
-        step.status = StepStatus.IN_PROGRESS
-        val execResult = integrationHub.executeStep(step)
-        if (execResult.isSuccess) {
-            step.status = StepStatus.COMPLETED
-            step.resultMessage = execResult.getOrNull()
-            statusTextState = "> ✅ Sensitive action approved and executed."
-        } else {
-            step.status = StepStatus.FAILED
-            step.resultMessage = execResult.exceptionOrNull()?.message
-            statusTextState = "> ❌ Action failed: ${step.resultMessage}"
+        lifecycleScope.launch {
+            step.status = StepStatus.IN_PROGRESS
+            val execResult = integrationHub.executeStep(step)
+            if (execResult.isSuccess) {
+                step.status = StepStatus.COMPLETED
+                step.resultMessage = execResult.getOrNull()
+                statusTextState = "> ✅ Sensitive action approved and executed."
+            } else {
+                step.status = StepStatus.FAILED
+                step.resultMessage = execResult.exceptionOrNull()?.message
+                statusTextState = "> ❌ Action failed: ${step.resultMessage}"
+            }
         }
     }
 

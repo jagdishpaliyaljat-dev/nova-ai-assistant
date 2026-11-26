@@ -11,7 +11,7 @@ import com.personal.novaai.domain.model.PlanStep
 
 class MobileIntegrationHub(private val context: Context) {
 
-    fun executeStep(step: PlanStep): Result<String> {
+    suspend fun executeStep(step: PlanStep): Result<String> {
         val a11y = com.personal.novaai.engine.orchestrator.NovaAccessibilityEngine.instance
 
         return try {
@@ -28,18 +28,20 @@ class MobileIntegrationHub(private val context: Context) {
                 "OPEN_URL" -> openUrl(step.parameters["url"]?.toString() ?: step.target)
                 "SYSTEM_SETTING" -> openSetting(step.target)
                 "TOGGLE", "TURN_ON", "ENABLE" -> {
-                    // Turn on Hotspot, Bluetooth, Wi-Fi directly on screen
+                    // Turn on Hotspot, Bluetooth, Wi-Fi directly on screen with retry
                     if (a11y != null) {
-                        val toggled = a11y.toggleSwitch() || a11y.clickByTextOrToggle(step.target)
-                        Result.success(if (toggled) "Toggled ${step.target}" else "Switch clicked")
+                        val toggled = a11y.autoToggleAction(step.target)
+                        Result.success(if (toggled) "Toggled ${step.target}" else "Switch toggle attempted")
                     } else {
                         Result.failure(IllegalStateException("Accessibility service not connected"))
                     }
                 }
                 "CLICK", "TAP" -> {
                     if (a11y != null) {
-                        a11y.clickByTextOrToggle(step.target)
-                        Result.success("Tapped ${step.target}")
+                        val clicked = a11y.retryUntilSuccess(retries = 5, delayMs = 600) {
+                            a11y.clickByTextOrToggle(step.target)
+                        }
+                        Result.success(if (clicked) "Tapped ${step.target}" else "Tap attempted")
                     } else {
                         Result.failure(IllegalStateException("Accessibility service not connected"))
                     }

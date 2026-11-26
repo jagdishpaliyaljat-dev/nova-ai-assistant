@@ -58,6 +58,17 @@ class NovaAccessibilityEngine : AccessibilityService() {
         val rootNode = rootInActiveWindow ?: return false
         val nodes = rootNode.findAccessibilityNodeInfosByText(targetText)
         for (node in nodes) {
+            // Check sibling toggle switch (like hotspot toggle switch next to text)
+            node.parent?.let { parent ->
+                for (i in 0 until parent.childCount) {
+                    val child = parent.getChild(i)
+                    if (child != null && (child.isCheckable || child.className?.contains("Switch", true) == true)) {
+                        child.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                        return true
+                    }
+                }
+            }
+
             // Check self or ancestors
             var current: AccessibilityNodeInfo? = node
             while (current != null) {
@@ -68,28 +79,31 @@ class NovaAccessibilityEngine : AccessibilityService() {
                 current = current.parent
             }
 
-            // Check sibling toggle switch (like hotspot toggle switch next to text)
-            node.parent?.let { parent ->
-                for (i in 0 until parent.childCount) {
-                    val child = parent.getChild(i)
-                    if (child != null && (child.isCheckable || child.className?.contains("Switch", true) == true || child.isClickable)) {
-                        child.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                        return true
-                    }
-                }
-            }
-
-            // Fallback click at screen bounds
+            // Fallback click at screen bounds: On phones, switches are on the far right of the row
             val rect = Rect()
             node.getBoundsInScreen(rect)
             if (rect.width() > 0 && rect.height() > 0) {
-                // Click slightly to the right to hit toggle switch if present
-                val clickX = (rect.right + 120).coerceAtMost(resources.displayMetrics.widthPixels - 40)
-                clickAt(clickX.toFloat(), rect.centerY().toFloat())
+                val screenWidth = resources.displayMetrics.widthPixels
+                val clickX = (screenWidth - 100f).coerceAtLeast(rect.centerX().toFloat())
+                clickAt(clickX, rect.centerY().toFloat())
                 return true
             }
         }
         return false
+    }
+
+    suspend fun retryUntilSuccess(retries: Int = 5, delayMs: Long = 1000, action: () -> Boolean): Boolean {
+        for (i in 0 until retries) {
+            if (action()) return true
+            delay(delayMs)
+        }
+        return false
+    }
+
+    suspend fun autoToggleAction(targetText: String): Boolean {
+        return retryUntilSuccess(retries = 6, delayMs = 800) {
+            toggleSwitch() || clickByTextOrToggle(targetText)
+        }
     }
 
     fun toggleSwitch(): Boolean {

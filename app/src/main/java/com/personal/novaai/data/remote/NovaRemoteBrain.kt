@@ -91,7 +91,7 @@ class NovaRemoteBrain {
             }
         """.trimIndent()
 
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=$apiKey"
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=$apiKey"
         val jsonBody = JSONObject().apply {
             val contents = JSONArray().apply {
                 put(JSONObject().apply {
