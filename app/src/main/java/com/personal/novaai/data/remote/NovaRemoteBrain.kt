@@ -42,12 +42,37 @@ class NovaRemoteBrain {
             
             Supported Platform Actions:
             - "OPEN_APP": target="com.whatsapp", "com.google.android.youtube", "camera", "com.android.chrome", "com.android.settings", "calculator", "com.google.android.apps.maps"
+            - "SYSTEM_SETTING": target="hotspot", "wifi", "bluetooth", "display", "sound"
+            - "TOGGLE": target="hotspot", "wifi", "bluetooth" (Toggles switch on screen)
+            - "CLICK": target="element text"
             - "SEARCH_IN_APP": target="app_or_category", parameters={"query": "text to search"}
             - "SEND_MESSAGE": target="WhatsApp", parameters={"message": "content"}
             - "CALL_CONTACT": target="Contact Name or phone number"
             - "SET_ALARM": parameters={"hour": 7, "minute": 0, "message": "label"}
             - "OPEN_URL": parameters={"url": "https://..."}
-            - "SYSTEM_SETTING": target="wifi", "bluetooth", "display", "sound"
+            
+            Example for "hotspot on karo" or "turn on hotspot":
+            {
+              "intent": "ENABLE_HOTSPOT",
+              "reasoning": "Open Tethering settings and toggle the hotspot switch",
+              "spoken_reply": "Hotspot on kar raha hoon.",
+              "steps": [
+                 {
+                    "step_id": 1,
+                    "action": "SYSTEM_SETTING",
+                    "target": "hotspot",
+                    "parameters": {},
+                    "requires_approval": false
+                 },
+                 {
+                    "step_id": 2,
+                    "action": "TOGGLE",
+                    "target": "Hotspot",
+                    "parameters": {},
+                    "requires_approval": false
+                 }
+              ]
+            }
             
             Output strictly JSON:
             {

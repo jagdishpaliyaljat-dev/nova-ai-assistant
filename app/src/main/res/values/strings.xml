@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">NOVA AI</string>
+    <string name="accessibility_desc">NOVA AI Autonomous Touch &amp; Action Controller</string>
 </resources>

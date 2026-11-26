@@ -12,6 +12,8 @@ import com.personal.novaai.domain.model.PlanStep
 class MobileIntegrationHub(private val context: Context) {
 
     fun executeStep(step: PlanStep): Result<String> {
+        val a11y = com.personal.novaai.engine.orchestrator.NovaAccessibilityEngine.instance
+
         return try {
             when (step.action.uppercase()) {
                 "OPEN_APP" -> launchApp(step.target)
@@ -25,6 +27,23 @@ class MobileIntegrationHub(private val context: Context) {
                 )
                 "OPEN_URL" -> openUrl(step.parameters["url"]?.toString() ?: step.target)
                 "SYSTEM_SETTING" -> openSetting(step.target)
+                "TOGGLE", "TURN_ON", "ENABLE" -> {
+                    // Turn on Hotspot, Bluetooth, Wi-Fi directly on screen
+                    if (a11y != null) {
+                        val toggled = a11y.toggleSwitch() || a11y.clickByTextOrToggle(step.target)
+                        Result.success(if (toggled) "Toggled ${step.target}" else "Switch clicked")
+                    } else {
+                        Result.failure(IllegalStateException("Accessibility service not connected"))
+                    }
+                }
+                "CLICK", "TAP" -> {
+                    if (a11y != null) {
+                        a11y.clickByTextOrToggle(step.target)
+                        Result.success("Tapped ${step.target}")
+                    } else {
+                        Result.failure(IllegalStateException("Accessibility service not connected"))
+                    }
+                }
                 else -> Result.failure(IllegalArgumentException("Unsupported action: ${step.action}"))
             }
         } catch (e: Exception) {
@@ -114,12 +133,17 @@ class MobileIntegrationHub(private val context: Context) {
     }
 
     private fun openSetting(settingName: String): Result<String> {
-        val action = when (settingName.lowercase()) {
-            "wifi" -> Settings.ACTION_WIFI_SETTINGS
-            "bluetooth" -> Settings.ACTION_BLUETOOTH_SETTINGS
-            "display" -> Settings.ACTION_DISPLAY_SETTINGS
-            "sound" -> Settings.ACTION_SOUND_SETTINGS
-            "apps" -> Settings.ACTION_APPLICATION_SETTINGS
+        val lower = settingName.lowercase()
+        val action = when {
+            lower.contains("hotspot") || lower.contains("tether") -> {
+                // Direct Tethering & Portable Hotspot settings
+                "android.settings.TETHER_SETTINGS"
+            }
+            lower.contains("wifi") -> Settings.ACTION_WIFI_SETTINGS
+            lower.contains("bluetooth") -> Settings.ACTION_BLUETOOTH_SETTINGS
+            lower.contains("display") -> Settings.ACTION_DISPLAY_SETTINGS
+            lower.contains("sound") -> Settings.ACTION_SOUND_SETTINGS
+            lower.contains("apps") -> Settings.ACTION_APPLICATION_SETTINGS
             else -> Settings.ACTION_SETTINGS
         }
         val intent = Intent(action).apply {

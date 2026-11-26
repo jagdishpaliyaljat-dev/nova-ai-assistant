@@ -101,11 +101,22 @@ class MainActivity : ComponentActivity() {
     private fun processUserGoal(goal: String) {
         statusTextState = "> 🧠 Formulating plan for: \"$goal\"..."
         lifecycleScope.launch {
+            val a11y = com.personal.novaai.engine.orchestrator.NovaAccessibilityEngine.instance
+            if (a11y == null) {
+                statusTextState = "> ⚠️ कृपया Accessibility Settings में जाकर 'NOVA AI' को ON करें!"
+                val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                startActivity(intent)
+                return@launch
+            }
+
             val result = remoteBrain.planGoal(goal)
             result.onSuccess { plan ->
                 currentPlanState = plan
                 statusTextState = "> Plan ready: ${plan.intent} (${plan.steps.size} steps)"
                 voiceEngine.speak(plan.spokenReply)
+
+                // Minimize so target screen appears immediately
+                moveTaskToBack(true)
 
                 // Execute autonomous steps sequentially
                 executePlanSequence(plan)
